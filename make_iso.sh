@@ -1,4 +1,9 @@
 #!/usr/bin/env sh
+# Automatically add the company custom kickstart file to a UEFI CD Image
+#
+# Based on notes from:
+#  - http://www.tuxfixer.com/mount-modify-edit-repack-create-uefi-iso-including-kickstart-file/
+#
 #set -x
 set -e
 
@@ -8,9 +13,16 @@ set -e
 # Location to build IOS in
 BUILDROOT=/home/dan/tmp/
 # Menu entry for the custom image menu entry
+# TODO - Get the new menu entry PER ISO (RHEL-7.2 in the LABEL), or dynamically generate it from the first menuentry.
+# For RedHat 7.2 ISO
 NEWMENU="menuentry Custom_Kickstart_Installation --class fedora --class gnu-linux --class gnu --class os {
         linuxefi /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=RHEL-7.2\x20Server.x86_64 quiet inst.ks=cdrom:/ks.cfg
         initrdefi /images/pxeboot/initrd.img
+}"
+# For Centos ISO
+NEWMENU="menuentry Custom_Kickstart_Installation --class fedora --class gnu-linux --class gnu --class os {
+	linuxefi /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=CentOS\x207\x20x86_64 quiet inst.ks=cdrom:/ks.cfg
+	initrdefi /images/pxeboot/initrd.img
 }"
 #
 # Timestamp for the image:
@@ -79,23 +91,30 @@ rsync -a ./ksfiles/${KSNAME} ${BUILDDIR}/image/ks.cfg
 # 0: Backup the original for debugging
 cp ${BUILDDIR}/image/EFI/BOOT/grub.cfg ${BUILDDIR}/image/EFI/BOOT/grub.cfg.orig
 
-clear
-set -x
 # 1: Change the menuentry title:
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-echo " --- FIRST SED --- "
 sed -i.$(date +%s) '0,/menuentry /s//ABCDEFGHIJ\nmenuentry /' ${BUILDDIR}/image/EFI/BOOT/grub.cfg
 
-
 # 2: Insert new text:
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 INJECT=$(echo "${NEWMENU}" | sed ':a;N;$!ba;s/\n/\\n/g')
-echo Replacing this:
-echo "${NEWMENU}"
-echo ..actually this:
-echo "${INJECT}"
-
-echo " --- SECOND SED --- "
 sed -i.$(date +%s) "s#ABCDEFGHIJ#${INJECT}#" ${BUILDDIR}/image/EFI/BOOT/grub.cfg
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+
+#################################
+# Now build the ISO image
+#
+# mkisofs -o /tmp/rhel_7.2_uefi_custom.iso -b isolinux/isolinux.bin \
+#         -J -R -l -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 \
+#         -boot-info-table -eltorito-alt-boot -e images/efiboot.img \
+#         -no-emul-boot -graft-points -V "RHEL-7.2 Server.x86_64" \
+#         /mnt/custom_rhel72_image/
+
+mkisofs -o ${BUILDDIR}/custom-${ISONAME}.iso -b isolinux/isolinux.bin \
+        -J -R -l -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 \
+        -boot-info-table -eltorito-alt-boot -e images/efiboot.img \
+        -no-emul-boot -graft-points -V "CentOS 7 x86_64 " \
+        ${BUILDDIR}/image/
+
+echo "Built ISO available here:"
+echo "${BUILDDIR}/custom-${ISONAME}.iso"
+ls -al "${BUILDDIR}/custom-${ISONAME}.iso"
+
 
