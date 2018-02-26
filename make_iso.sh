@@ -7,6 +7,13 @@
 #set -x
 set -e
 
+# TODO:
+# - Use the ISO name to pull in kickstart and other info, don't code into script directly.
+#   --> ${ISONAME}-info.sh
+# - Setup flags in the info.sh file to enable code here.
+#   --> ex: SETUP_UEFI=1 --> enables the UEFI code, otherwise not.
+#   --> Assume that a portion must be enabled (1), otherwise it is not executed.
+
 #################################
 # Global variables to tweak.
 #
