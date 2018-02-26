@@ -3,7 +3,7 @@
 #
 # Based on notes from:
 #  - http://www.tuxfixer.com/mount-modify-edit-repack-create-uefi-iso-including-kickstart-file/
-#
+#  - https://github.com/CentOS/Community-Kickstarts
 #set -x
 set -e
 
@@ -80,6 +80,9 @@ mkdir -p ${BUILDDIR}/isomount/
 mkdir -p ${BUILDDIR}/image/
 mount -o loop ./golden_isos/${ISONAME} ${BUILDDIR}/isomount/
 
+# Cleanup from past tests
+rm -f ${BUILDDIR}/image/isolinux/isolinux.cfg* ${BUILDDIR}/image/ks.cfg* ${BUILDDIR}/image/EFI/BOOT/grub.cfg*
+
 # Copy contents of ISO to new working directory
 echo "Copying contents from ISO to ${BUILDDIR}/image/"
 rsync -a ${BUILDDIR}/isomount/ ${BUILDDIR}/image/
@@ -87,16 +90,29 @@ rsync -a ${BUILDDIR}/isomount/ ${BUILDDIR}/image/
 # Copy the kickstart file into the ISO directory
 rsync -a ./ksfiles/${KSNAME} ${BUILDDIR}/image/ks.cfg
 
-# Edit the grub.conf in the ../EFI/BOOT/ directory:
-# 0: Backup the original for debugging
-cp ${BUILDDIR}/image/EFI/BOOT/grub.cfg ${BUILDDIR}/image/EFI/BOOT/grub.cfg.orig
+ls -altr ${BUILDDIR}/image/isolinux/isolinux.cfg* ${BUILDDIR}/image/ks.cfg* ${BUILDDIR}/image/EFI/BOOT/grub.cfg*
+echo Pausing after copy
+read -p "Pausing after copy" foo
 
-# 1: Change the menuentry title:
+#################################
+# Setup the EFI portion of the boot files (modern systems)
+#
+# Edit the grub.conf in the ../EFI/BOOT/ directory:
+# 1: Change the menuentry title of the first entry:
 sed -i.$(date +%s) '0,/menuentry /s//ABCDEFGHIJ\nmenuentry /' ${BUILDDIR}/image/EFI/BOOT/grub.cfg
 
 # 2: Insert new text:
 INJECT=$(echo "${NEWMENU}" | sed ':a;N;$!ba;s/\n/\\n/g')
 sed -i.$(date +%s) "s#ABCDEFGHIJ#${INJECT}#" ${BUILDDIR}/image/EFI/BOOT/grub.cfg
+
+# 3: Set default boot to the first one we setup:
+sed -i.$(date +%s) 's/^set default=.../set default="0"/' ${BUILDDIR}/image/EFI/BOOT/grub.cfg
+
+#################################
+# Setup the legacy portion of the boot files
+#
+# 1: Edit the isolinux.cft to use the new kickstart file.
+sed -i.$(date +%s) '0,/append initrd=initrd.img/s//append initrd=initrd.img  ks=cdrom:\/ks.cfg/' ${BUILDDIR}/image/isolinux/isolinux.cfg
 
 #################################
 # Now build the ISO image
@@ -106,12 +122,21 @@ sed -i.$(date +%s) "s#ABCDEFGHIJ#${INJECT}#" ${BUILDDIR}/image/EFI/BOOT/grub.cfg
 #         -boot-info-table -eltorito-alt-boot -e images/efiboot.img \
 #         -no-emul-boot -graft-points -V "RHEL-7.2 Server.x86_64" \
 #         /mnt/custom_rhel72_image/
+# -J - Generate Joliet directory records in addition to regular ISO9660 filenames.
+# -R - Generate SUSP and RR records using the Rock Ridge protocol
+# -l - Allow full 31-character filenames.
+# -c - Specifies the path and filename of the boot catalog,
+# -V - Specifies  the  volume  ID (volume name or label) to be written into the master block.
+# -boot-load-size - Specifies the number of "virtual" (512-byte) sectors to load in no-emulation mode.
+# -no-emul-boot - Specifies  that  the boot image used to create El Torito bootable CDs is a "no emulation" image.
+# -b - Specifies  the  path  and filename of the boot image to be used when making an El Torito bootable CD
+
 
 mkisofs -o ${BUILDDIR}/custom-${ISONAME}.iso -b isolinux/isolinux.bin \
         -J -R -l -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 \
         -boot-info-table -eltorito-alt-boot -e images/efiboot.img \
         -no-emul-boot -graft-points -V "CentOS 7 x86_64 " \
-        ${BUILDDIR}/image/
+        ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish'
 
 echo "Built ISO available here:"
 echo "${BUILDDIR}/custom-${ISONAME}.iso"
