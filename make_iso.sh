@@ -4,6 +4,7 @@
 # Based on notes from:
 #  - http://www.tuxfixer.com/mount-modify-edit-repack-create-uefi-iso-including-kickstart-file/
 #  - https://github.com/CentOS/Community-Kickstarts
+#  - https://fedoraproject.org/wiki/User:Pjones/BootableCDsForBIOSAndUEFI
 #set -x
 set -e
 
@@ -143,28 +144,7 @@ fi
 
 #################################
 # Now build the ISO image
-#
-# mkisofs -o /tmp/rhel_7.2_uefi_custom.iso -b isolinux/isolinux.bin \
-#         -J -R -l -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 \
-#         -boot-info-table -eltorito-alt-boot -e images/efiboot.img \
-#         -no-emul-boot -graft-points -V "RHEL-7.2 Server.x86_64" \
-#         /mnt/custom_rhel72_image/
-# -J - Generate Joliet directory records in addition to regular ISO9660 filenames.
-# -R - Generate SUSP and RR records using the Rock Ridge protocol
-# -l - Allow full 31-character filenames.
-# -c - Specifies the path and filename of the boot catalog,
-# -V - Specifies  the  volume  ID (volume name or label) to be written into the master block.
-# -boot-load-size - Specifies the number of "virtual" (512-byte) sectors to load in no-emulation mode.
-# -no-emul-boot - Specifies  that  the boot image used to create El Torito bootable CDs is a "no emulation" image.
-# -b - Specifies  the  path  and filename of the boot image to be used when making an El Torito bootable CD
-
 echo "Executing the \"mkisofs\" command."
-# Notes: https://fedoraproject.org/wiki/User:Pjones/BootableCDsForBIOSAndUEFI
-# mkisofs -o ${BUILDDIR}/custom-${ISONAME}.iso -b isolinux/isolinux.bin \
-#         -J -input-charset UTF-8 -R -l -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 \
-#         -boot-info-table -eltorito-alt-boot -e images/efiboot.img \
-#         -no-emul-boot -graft-points -V "${CDLABEL}" \
-#         ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish|^Using\ .*for\ '
 mkisofs -U  -A "${CDLABEL}" -V "${CDLABEL}" -volset "${CDLABEL}" -J  -joliet-long -r -v -T \
     -o ${BUILDDIR}/custom-${ISONAME}.iso -b isolinux/isolinux.bin -c isolinux/boot.cat \
     -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot \

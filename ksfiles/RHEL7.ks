@@ -45,9 +45,6 @@ services --enabled="chronyd"
 # System timezone
 timezone Etc/GMT --utc --ntpservers=t1.ntp.west.com,t2.ntp.west.com,t3.ntp.west.com,t4.ntp.west.com,t5.ntp.west.com,t6.ntp.west.com
 
-# Partition clearing information
-clearpart --none --initlabel
-
 # Disk partitioning information
 volgroup rootvg --pesize=4096 pv.155
 logvol swap     --fstype="swap"  --size=2048  --name=swap   --vgname=rootvg
@@ -222,6 +219,12 @@ END_NET
 
   # Set the DISK/PARITITON information for the installer:
   cat <<END_DISK >/tmp/ks-destdrive.ks
+# Partition clearing information
+clearpart --drives=${destdrive} --all
+
+# Initialize any invalid partition tables
+#zerombr
+
 # Run the Setup Agent on first boot
 firstboot --disabled
 
