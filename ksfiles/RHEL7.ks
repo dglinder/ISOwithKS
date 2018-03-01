@@ -185,15 +185,15 @@ network --device=${nic_list} --bootproto=static --activate --ip=${network_ipaddr
 END_NET
   fi
   #
-  # Disable all the other un-used NICs
-  all_nic=$(ip ad li | egrep '^[0-9]' | cut -d: -f 2 | sed 's/ //g')
-  disable_nics=$(echo "${all_nic}" | egrep -v "${nic_inuse}")
-  for NIC in ${disable_nics} ; do
-    echo "Disabling $NIC"
-    cat<<END_DISABLE_NIC >> /tmp/ks-network.ks
-network --device=${NIC} --onboot=no
-END_DISABLE_NIC
-  done
+#  # Disable all the other un-used NICs
+#  all_nic=$(ip ad li | egrep '^[0-9]' | cut -d: -f 2 | sed 's/ //g')
+#  disable_nics=$(echo "${all_nic}" | egrep -v "${nic_inuse}")
+#  for NIC in ${disable_nics} ; do
+#    echo "Disabling $NIC"
+#    cat<<END_DISABLE_NIC >> /tmp/ks-network.ks
+#network --device=${NIC} --onboot=no
+#END_DISABLE_NIC
+#  done
   #
   ################################################################
 
@@ -223,7 +223,7 @@ END_DISABLE_NIC
   # Set the DISK/PARITITON information for the installer:
   cat <<END_DISK >/tmp/ks-destdrive.ks
 # Run the Setup Agent on first boot
-firstboot --enable
+firstboot --disabled
 
 # Setup which drive to install to.
 ignoredisk --only-use=${destdrive}
