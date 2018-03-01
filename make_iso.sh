@@ -172,9 +172,10 @@ mkisofs -U  -A "${CDLABEL}" -V "${CDLABEL}" -volset "${CDLABEL}" -J  -joliet-lon
     ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish|^Using\ .*for\ '
 
 echo "Execution of \"mkisofs\" complete."
+sha256sum  ${BUILDDIR}/custom-${ISONAME}.iso > ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum
 echo ""
 echo "Built ISO available here:"
 echo "${BUILDDIR}/custom-${ISONAME}.iso"
-ls -al "${BUILDDIR}/custom-${ISONAME}.iso"
+ls -al "${BUILDDIR}/custom-${ISONAME}.iso*"
 
 
