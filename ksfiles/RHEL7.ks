@@ -248,16 +248,25 @@ END_DISK
   echo "################################################################"
   echo "# Review configuration"
   echo "#"
+  echo ""
   echo "Full hostname with domain: ${network_hostname}.${network_dnsdomain}"
+  echo ""
   echo "Installation drive: ${destdrive}"
-  echo "IP address: ${network_ipaddr}/${network_netmask} via ${network_gateway}"
+  echo "Drive details:"
+  fdisk -l /dev/${destdrive}
+  echo ""
+  echo "IP address: ${network_ipaddr}/${network_netmask}"
+  echo "Default gateway: ${network_gateway}"
+  echo ""
   echo "DNS Server(s): ${def_dns}"
+  echo ""
   echo -n "NIC bonding: ${setup_bonding} -"
   if [ "${setup_bonding}" == "y" ] ; then
     echo " BONDED network ports: ${nic_list}"
   else
     echo " SINGLE network port: ${nic_list}"
   fi
+  echo ""
   echo "#"
   echo "################################################################"
   echo ""

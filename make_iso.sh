@@ -27,10 +27,16 @@ GOLDENISO=./isos/
 TS=$(date +%Y%m%d_%H%M%S)
 
 #################################
+# Set the environment variable DEBUG=1 to pause build.
+if [ ! -z "${DEBUG}" ] ; then
+  echo "DEBUG mode enabled."
+fi
+
+#################################
 # Ensure root permissions
 if [ `id -u` -gt 0 ] ; then
   echo Must run as root...
-  sudo $0 $*
+  sudo DEBUG="${DEBUG}" $0 $*
   exit
 fi
 
@@ -142,6 +148,10 @@ if [ ${DO_MBR} -ge 1 ] ; then
 #  read -p "Pausing after MBR settings, press return to continue." foo
 fi
 
+if [ ! -z "${DEBUG}" ] ; then
+  read -p "Press return to continue building ISO." foo
+fi
+
 #################################
 # Now build the ISO image
 echo "Executing the \"mkisofs\" command."
@@ -151,11 +161,11 @@ mkisofs -U  -A "${CDLABEL}" -V "${CDLABEL}" -volset "${CDLABEL}" -J  -joliet-lon
     -e images/efiboot.img -no-emul-boot \
     ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish|^Using\ .*for\ '
 
-echo "Execution of \"mkisofs\" complete."
+echo "Execution of \"mkisofs\" complete, computing sha256sum."
 sha256sum  ${BUILDDIR}/custom-${ISONAME}.iso > ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum
 echo ""
 echo "Built ISO available here:"
 echo "${BUILDDIR}/custom-${ISONAME}.iso"
-ls -al "${BUILDDIR}/custom-${ISONAME}.iso*"
+ls -al ${BUILDDIR}/custom-${ISONAME}.iso*
 
 
