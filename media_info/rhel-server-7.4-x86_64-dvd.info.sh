@@ -1,6 +1,6 @@
 #!/bin/sh
 # Media info for the rhel-server-7.4-x86_64-dvd.iso
-SHA256SUM=""
+SHA256SUM="431a58c8c0351803a608ffa56948c5a7861876f78ccbe784724dd8c987ff7000"
 
 KSNAME="RHEL7.ks"
 CDLABEL="RHEL-7.4 Server.x86_64"
