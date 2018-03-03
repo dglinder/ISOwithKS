@@ -9,11 +9,11 @@
 set -e
 
 # TODO:
-# - Use the ISO name to pull in kickstart and other info, don't code into script directly.
-#   --> ${ISONAME}-info.sh
-# - Setup flags in the info.sh file to enable code here.
-#   --> ex: SETUP_UEFI=1 --> enables the UEFI code, otherwise not.
-#   --> Assume that a portion must be enabled (1), otherwise it is not executed.
+#  Add disk info to confirmation screen #1 
+#  Check the provided netmask is valid #2 
+#  Remove the "quiet" option during custom install boot #3 
+#  Boot timeout #4 
+#  Add serial number to ISO name and a text file in /root #5 
 
 #################################
 # Global variables to tweak.
@@ -132,6 +132,13 @@ if [ ${DO_UEFI} -ge 1 ] ; then
   # 3: Set default boot to the first one we setup:
   sed -i.$(date +%s) 's/^set default=.../set default="0"/' ${BUILDDIR}/image/EFI/BOOT/grub.cfg
   sleep 1
+
+  # 4: Remove the quiet boot flag
+  sed -i.$(date +%s) 's/ quiet//' ${BUILDDIR}/image/EFI/BOOT/grub.cfg
+
+  # 5: Adjust boot delay to 1,000 seconds (~16 minutes)
+  sed -i.$(date +%s) 's/set timeout=60/set timeout=1000/' ${BUILDDIR}/image/EFI/BOOT/grub.cfg
+
   echo "Updated: ${BUILDDIR}/image/EFI/BOOT/grub.cfg"
 #  read -p "Pausing after UEFI settings, press return to continue." foo
 fi
@@ -146,26 +153,39 @@ if [ ${DO_MBR} -ge 1 ] ; then
   sleep 1
   echo "Updated: ${BUILDDIR}/${MBR_MENUFILE}"
 #  read -p "Pausing after MBR settings, press return to continue." foo
+
+  # 2: Remove the quiet boot flag
+  sed -i.$(date +%s) 's/ quiet//' ${BUILDDIR}/${MBR_MENUFILE}
+
+  # 3: Adjust boot delay to 1,000 seconds (~16 minutes)
+  sed -i.$(date +%s) 's/timeout 600/timeout 10000/' ${BUILDDIR}/${MBR_MENUFILE}
+
+  # 4: Fix title of boot option
+  sed -i.$(date +%s) 's/menu.label..Install.Red.Hat/menu label ^Install Custom Red Hat/' ${BUILDDIR}/${MBR_MENUFILE}
+
 fi
 
 if [ ! -z "${DEBUG}" ] ; then
   read -p "Press return to continue building ISO." foo
 fi
 
+rm -f ${BUILDDIR}/iso_build_date.txt
+echo "ISO build date: $(date +'%Y-%m-%d.%H:%M:%S')" >> ${BUILDDIR}/iso_build_date.txt
+
 #################################
 # Now build the ISO image
 echo "Executing the \"mkisofs\" command."
 mkisofs -U  -A "${CDLABEL}" -V "${CDLABEL}" -volset "${CDLABEL}" -J  -joliet-long -r -v -T \
-    -o ${BUILDDIR}/custom-${ISONAME}.iso -b isolinux/isolinux.bin -c isolinux/boot.cat \
+    -o ${BUILDDIR}/custom-${ISONAME}.${TS}.iso -b isolinux/isolinux.bin -c isolinux/boot.cat \
     -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot \
     -e images/efiboot.img -no-emul-boot \
     ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish|^Using\ .*for\ '
 
 echo "Execution of \"mkisofs\" complete, computing sha256sum."
-sha256sum  ${BUILDDIR}/custom-${ISONAME}.iso > ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum
+sha256sum  ${BUILDDIR}/custom-${ISONAME}.${TS}.iso > ${BUILDDIR}/custom-${ISONAME}.${TS}.iso.sha256sum
 echo ""
 echo "Built ISO available here:"
-echo "${BUILDDIR}/custom-${ISONAME}.iso"
-ls -al ${BUILDDIR}/custom-${ISONAME}.iso*
+echo "${BUILDDIR}/custom-${ISONAME}.${TS}.iso"
+ls -al ${BUILDDIR}/custom-${ISONAME}.${TS}.iso*
 
 
