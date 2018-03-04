@@ -114,6 +114,9 @@ rsync -a ./ksfiles/${KSNAME} ${BUILDDIR}/image/ks.cfg
 #read -p "Pausing after copy, press return to continue." foo
 
 #set -x
+# Search alternative using awk:
+#   https://unix.stackexchange.com/a/188269/56732
+# awk 'NR==1,/find_this/{sub(/find_this/, "replace_this")} 1' file.to.modify
 if [ ${DO_UEFI} -ge 1 ] ; then
   #################################
   # Setup the EFI portion of the boot files (modern systems)
