@@ -14,6 +14,7 @@ set -e
 #  Remove the "quiet" option during custom install boot #3 
 #  Boot timeout #4 
 #  Add serial number to ISO name and a text file in /root #5 
+#  Fix the isolinux.cfg, adding in a new "label linux" --> "label custom", change default.
 
 #################################
 # Global variables to tweak.
