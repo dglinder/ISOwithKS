@@ -6,7 +6,7 @@ Usage
 
 Execute the '''make_iso.sh''' script, then answer the questions.
  * The script must run as root, enter your password for sudo if prompted.
- * Which ISO? Choose (copy-and-paste) the entire ISO name presented.
+ * Choose the full name of the ISO to start with, then enter the entire ISO name presented.
 
 The script will execute on any errors, so a successfull run should end with something like this:
 
