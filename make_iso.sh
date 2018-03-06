@@ -9,18 +9,18 @@
 set -e
 
 # TODO:
-#  Add disk info to confirmation screen #1 
-#  Check the provided netmask is valid #2 
-#  Remove the "quiet" option during custom install boot #3 
-#  Boot timeout #4 
-#  Add serial number to ISO name and a text file in /root #5 
+#  Add disk info to confirmation screen #1
+#  Check the provided netmask is valid #2
+#  Remove the "quiet" option during custom install boot #3
+#  Boot timeout #4
+#  Add serial number to ISO name and a text file in /root #5
 #  Fix the isolinux.cfg, adding in a new "label linux" --> "label custom", change default.
 
 #################################
 # Global variables to tweak.
 #
 # Location to build IOS in
-BUILDROOT=/opt/rh/tmp/
+BUILDROOT=/opt/rh/tmp
 # Source of the RHEL ISOs - this can be a directory with symlinks.
 GOLDENISO=./isos/
 
@@ -125,14 +125,17 @@ if [ ${DO_UEFI} -ge 1 ] ; then
   # Edit the grub.conf in the ../EFI/BOOT/ directory:
   # 1: Change the menuentry title of the first entry:
   echo "===== Setting up UEFI boot options ====="
-  sed -i.$(date +%s) "0,/${UEFI_FIND}/s//ABCDEFGHIJ\n${UEFI_FIND}/" ${BUILDDIR}/image/EFI/BOOT/grub.cfg
+  #sed -i.$(date +%s) "0,/${UEFI_FIND}/s//ABCDEFGHIJ\n${UEFI_FIND}/" ${BUILDDIR}/image/EFI/BOOT/grub.cfg
+  local_TS=$(date +%s)
+  cp -p ${BUILDDIR}/${UEFI_MENUFILE} ${BUILDDIR}/${UEFI_MENUFILE}.${local_TS}
+  awk -v sb="${UEFI_MENU}" "/${UEFI_START}/,/${UEFI_END}/ { if ( \$0 ~ /${UEFI_START}/ ) print sb; next } 1" "${BUILDDIR}/${UEFI_MENUFILE}.${local_TS}" > "${BUILDDIR}/${UEFI_MENUFILE}"
   sleep 1
-  
+
   # 2: Insert new text:
   INJECT=$(echo "${UEFI_MENU}" | sed ':a;N;$!ba;s/\n/\\n/g')
   sed -i.$(date +%s) "s#ABCDEFGHIJ#${INJECT}#" ${BUILDDIR}/image/EFI/BOOT/grub.cfg
   sleep 1
-  
+
   # 3: Set default boot to the first one we setup:
   sed -i.$(date +%s) 's/^set default=.../set default="0"/' ${BUILDDIR}/image/EFI/BOOT/grub.cfg
   sleep 1
@@ -151,12 +154,14 @@ if [ ${DO_MBR} -ge 1 ] ; then
   #################################
   # Setup the legacy portion of the boot files
   #
-  # 1: Edit the isolinux.cft to use the new kickstart file.
+  # 1: Edit the isolinux.cfg to use the new kickstart file.
   echo "===== Setting up legacy/MBR boot options ====="
-  sed -i.$(date +%s) "0,/${MBR_FIND}/s//${MBR_MENU}/" ${BUILDDIR}/${MBR_MENUFILE}
-  sleep 1
+  #sed -i.$(date +%s) "0,/${MBR_FIND}/s//${MBR_MENU}/" ${BUILDDIR}/${MBR_MENUFILE}
+  local_TS=$(date +%s)
+  cp -p ${BUILDDIR}/${MBR_MENUFILE} ${BUILDDIR}/${MBR_MENUFILE}.${local_TS}
+  awk -v sb="${MBR_MENU}" "/${MBR_START}/,/${MBR_END}/ { if ( \$0 ~ /${MBR_START}/ ) print sb; next } 1" "${BUILDDIR}/${MBR_MENUFILE}.${local_TS}" > "${BUILDDIR}/${MBR_MENUFILE}"
   echo "Updated: ${BUILDDIR}/${MBR_MENUFILE}"
-#  read -p "Pausing after MBR settings, press return to continue." foo
+  sleep 1
 
   # 2: Remove the quiet boot flag
   sed -i.$(date +%s) 's/ quiet//' ${BUILDDIR}/${MBR_MENUFILE}
@@ -173,8 +178,8 @@ if [ ! -z "${DEBUG}" ] ; then
   read -p "Press return to continue building ISO." foo
 fi
 
-rm -f ${BUILDDIR}/iso_build_date.txt
-echo "ISO build date: $(date +'%Y-%m-%d.%H:%M:%S')" >> ${BUILDDIR}/iso_build_date.txt
+rm -f ${BUILDDIR}/image/iso_build_date.txt
+echo "ISO build date: $(date +'%Y-%m-%d.%H:%M:%S')" >> ${BUILDDIR}/image/iso_build_date.txt
 
 #################################
 # Now build the ISO image
@@ -185,6 +190,9 @@ mkisofs -U  -A "${CDLABEL}" -V "${CDLABEL}" -volset "${CDLABEL}" -J  -joliet-lon
     -e images/efiboot.img -no-emul-boot \
     ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish|^Using\ .*for\ '
 
+rm -f ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum ${BUILDDIR}/custom-${ISONAME}.iso
+ln -s ${BUILDDIR}/custom-${ISONAME}.${TS}.iso ${BUILDDIR}/custom-${ISONAME}.iso
+ln -s ${BUILDDIR}/custom-${ISONAME}.${TS}.iso.sha256sum ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum
 echo "Execution of \"mkisofs\" complete, computing sha256sum."
 sha256sum  ${BUILDDIR}/custom-${ISONAME}.${TS}.iso > ${BUILDDIR}/custom-${ISONAME}.${TS}.iso.sha256sum
 echo ""
