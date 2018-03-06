@@ -80,6 +80,8 @@ openssh-server
 %pre --interpreter=/bin/bash  --log=/tmp/ks-pre01.log
 # Exit pre-script on ANY ERROR with following "set -e"
 set -e
+# Ensure any un-set variables are caught
+set -u
 # Show debugging commands as they are run: "set -x"
 #set -x
 
@@ -119,7 +121,27 @@ while [ "${good_config}" == "n" ] ; do
   read -p "Hostname of this system:   " -ei "${def_hn}"   network_hostname
   read -p "DNS domain of this system: " -ei "${def_dom}"  network_dnsdomain
   read -p "IP address of this system: " -ei "${def_ip}"   network_ipaddr
-  read -p "IP netmask of this system: " -ei "${def_mask}" network_netmask
+  netmask_sane="no"
+  while [ "${netmask_sane}" -eq "no" ] ; do
+    read -p "IP netmask of this system: " -ei "${def_mask}" network_netmask
+    (
+      # This parentheis wrapped code is necessary to disable the "set -e" checking and
+      # ensure the grep check doesn't kill the entire script.  The parenthesis creates
+      # a subshell so the set+e/set-e commands don't change the outer shell state.
+      set +e
+      echo ${network_netmask} | grep -w -E -o '^(254|252|248|240|224|192|128).0.0.0|255.(254|252|248|240|224|192|128|0).0.0|255.255.(254|252|248|240|224|192|128|0).0|255.255.255.(254|252|248|240|224|192|128|0)' > /dev/null
+      exit_code=$?
+      set -e
+    )
+    if [ ${exit_code} -ne 0 ]; then
+      echo "### ERROR >>>>>>-<<<<<< ERROR ###"
+      echo "--> Invalid netmask : ${network_netmask} <--"
+      echo "### ERROR >>>>>>-<<<<<< ERROR ###"
+      netmask_sane="no"
+    else
+      netmask_sane="yes"
+    fi
+  done
   read -p "DNS  to use initially:     " -ei "${def_dns}"  def_dns
   # Compute the base network to pre-fill for the gateway.
   IFS=. read -r i1 i2 i3 i4 <<< "${network_ipaddr}"
@@ -145,7 +167,7 @@ while [ "${good_config}" == "n" ] ; do
   # URL: https://access.redhat.com/solutions/2150361
   #      https://access.redhat.com/solutions/1474223
   #      * So if vlan id is 100 and base interface is bond0, then correct parameter would be vlan=vlan100:bond0
-  #      
+  #
   clear
   echo "################################################################"
   echo "# Network interface bonding"
@@ -253,7 +275,7 @@ END_DISK
   echo ""
   echo "Installation drive: ${destdrive}"
   echo "Drive details:"
-  fdisk -l /dev/${destdrive}
+  fdisk -l /dev/${destdrive} | egrep -v '^$' | sed 's/^/    /g'
   echo ""
   echo "IP address: ${network_ipaddr}/${network_netmask}"
   echo "Default gateway: ${network_gateway}"
