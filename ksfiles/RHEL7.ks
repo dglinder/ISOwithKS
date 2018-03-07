@@ -122,17 +122,14 @@ while [ "${good_config}" == "n" ] ; do
   read -p "DNS domain of this system: " -ei "${def_dom}"  network_dnsdomain
   read -p "IP address of this system: " -ei "${def_ip}"   network_ipaddr
   netmask_sane="no"
-  while [ "${netmask_sane}" -eq "no" ] ; do
+  while [ "${netmask_sane}" == "no" ] ; do
     read -p "IP netmask of this system: " -ei "${def_mask}" network_netmask
-    (
-      # This parentheis wrapped code is necessary to disable the "set -e" checking and
-      # ensure the grep check doesn't kill the entire script.  The parenthesis creates
-      # a subshell so the set+e/set-e commands don't change the outer shell state.
-      set +e
-      echo ${network_netmask} | grep -w -E -o '^(254|252|248|240|224|192|128).0.0.0|255.(254|252|248|240|224|192|128|0).0.0|255.255.(254|252|248|240|224|192|128|0).0|255.255.255.(254|252|248|240|224|192|128|0)' > /dev/null
-      exit_code=$?
-      set -e
-    )
+    # Need to temporarialy ignore error codes returned for this grep.
+    set +e
+    echo ${network_netmask} | grep -w -E -o '^(254|252|248|240|224|192|128).0.0.0|255.(254|252|248|240|224|192|128|0).0.0|255.255.(254|252|248|240|224|192|128|0).0|255.255.255.(254|252|248|240|224|192|128|0)' > /dev/null
+    exit_code=$?
+    # Re-enable exit code watching in script.
+    set -e
     if [ ${exit_code} -ne 0 ]; then
       echo "### ERROR >>>>>>-<<<<<< ERROR ###"
       echo "--> Invalid netmask : ${network_netmask} <--"
