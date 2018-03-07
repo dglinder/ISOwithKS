@@ -5,16 +5,22 @@
 #  - http://www.tuxfixer.com/mount-modify-edit-repack-create-uefi-iso-including-kickstart-file/
 #  - https://github.com/CentOS/Community-Kickstarts
 #  - https://fedoraproject.org/wiki/User:Pjones/BootableCDsForBIOSAndUEFI
-#set -x
+#
+# Halt on any error in the script.
 set -e
+# Halt on any undefined variable.
+set -u
 
 # TODO:
-#  Add disk info to confirmation screen #1
-#  Check the provided netmask is valid #2
-#  Remove the "quiet" option during custom install boot #3
-#  Boot timeout #4
-#  Add serial number to ISO name and a text file in /root #5
-#  Fix the isolinux.cfg, adding in a new "label linux" --> "label custom", change default.
+#  checked: Add disk info to confirmation screen #1
+#  checked: Check the provided netmask is valid #2
+#  checked: Remove the "quiet" option during custom install boot #3
+#  checked: Boot timeout #4
+#  checked: Add serial number to ISO name and a text file in /root #5
+#  checked: Fix the isolinux.cfg, adding in a new "label linux" --> "label custom", change default.
+#  checked: Fix duplicate install menu options in isolinux.cfg
+#  checked: Ensure rsync is mirroring to delete extra/modified files.
+#  checked: Bootlocal after timeout
 
 #################################
 # Global variables to tweak.
@@ -29,9 +35,13 @@ TS=$(date +%Y%m%d_%H%M%S)
 
 #################################
 # Set the environment variable DEBUG=1 to pause build.
+set +u
 if [ ! -z "${DEBUG}" ] ; then
   echo "DEBUG mode enabled."
+else
+  DEBUG=0
 fi
+set -u
 
 #################################
 # Ensure root permissions
@@ -64,10 +74,12 @@ fi
 echo "List of available ISOs"
 ls -1 ${GOLDENISO}/ | egrep -i iso$ | cat -n
 ISONAME="bogus"
+set +u
 if [ ! -z "$1" ] ; then
   ISONAME="$1"
   echo "Using command line ISO: ${ISONAME}"
 fi
+set -u
 
 while [ ! -e "${GOLDENISO}/${ISONAME}" ] ; do
   read -p "Please enter the full name of the ISO to use: " -i "${ISONAME}" ISONAME
@@ -106,7 +118,7 @@ rm -f ${BUILDDIR}/${MBR_MENUFILE}* ${BUILDDIR}/image/ks.cfg* ${BUILDDIR}/${UEFI_
 
 # Copy contents of ISO to new working directory
 echo "Copying contents from ISO to ${BUILDDIR}/image/"
-rsync -a ${BUILDDIR}/isomount/ ${BUILDDIR}/image/
+rsync -a -q --delete ${BUILDDIR}/isomount/ ${BUILDDIR}/image/
 
 # Copy the kickstart file into the ISO directory
 rsync -a ./ksfiles/${KSNAME} ${BUILDDIR}/image/ks.cfg
@@ -114,7 +126,6 @@ rsync -a ./ksfiles/${KSNAME} ${BUILDDIR}/image/ks.cfg
 #ls -altr ${BUILDDIR}/${MBR_MENUFILE}* ${BUILDDIR}/image/ks.cfg* ${BUILDDIR}/${UEFI_MENUFILE}*
 #read -p "Pausing after copy, press return to continue." foo
 
-#set -x
 # Search alternative using awk:
 #   https://unix.stackexchange.com/a/188269/56732
 # awk 'NR==1,/find_this/{sub(/find_this/, "replace_this")} 1' file.to.modify
@@ -125,7 +136,6 @@ if [ ${DO_UEFI} -ge 1 ] ; then
   # Edit the grub.conf in the ../EFI/BOOT/ directory:
   # 1: Change the menuentry title of the first entry:
   echo "===== Setting up UEFI boot options ====="
-  #sed -i.$(date +%s) "0,/${UEFI_FIND}/s//ABCDEFGHIJ\n${UEFI_FIND}/" ${BUILDDIR}/image/EFI/BOOT/grub.cfg
   local_TS=$(date +%s)
   cp -p ${BUILDDIR}/${UEFI_MENUFILE} ${BUILDDIR}/${UEFI_MENUFILE}.${local_TS}
   awk -v sb="${UEFI_MENU}" "/${UEFI_START}/,/${UEFI_END}/ { if ( \$0 ~ /${UEFI_START}/ ) print sb; next } 1" "${BUILDDIR}/${UEFI_MENUFILE}.${local_TS}" > "${BUILDDIR}/${UEFI_MENUFILE}"
@@ -147,20 +157,21 @@ if [ ${DO_UEFI} -ge 1 ] ; then
   sed -i.$(date +%s) 's/set timeout=60/set timeout=1000/' ${BUILDDIR}/image/EFI/BOOT/grub.cfg
 
   echo "Updated: ${BUILDDIR}/image/EFI/BOOT/grub.cfg"
-#  read -p "Pausing after UEFI settings, press return to continue." foo
 fi
 
 if [ ${DO_MBR} -ge 1 ] ; then
   #################################
   # Setup the legacy portion of the boot files
   #
-  # 1: Edit the isolinux.cfg to use the new kickstart file.
   echo "===== Setting up legacy/MBR boot options ====="
-  #sed -i.$(date +%s) "0,/${MBR_FIND}/s//${MBR_MENU}/" ${BUILDDIR}/${MBR_MENUFILE}
+  # 1: Remove default boot setting:
+  sed -i.$(date +%s) '/\s*menu default/d' ${BUILDDIR}/${MBR_MENUFILE}
+  sleep 1
+
+  # 2: Edit the isolinux.cfg to use the new kickstart file.
   local_TS=$(date +%s)
   cp -p ${BUILDDIR}/${MBR_MENUFILE} ${BUILDDIR}/${MBR_MENUFILE}.${local_TS}
   awk -v sb="${MBR_MENU}" "/${MBR_START}/,/${MBR_END}/ { if ( \$0 ~ /${MBR_START}/ ) print sb; next } 1" "${BUILDDIR}/${MBR_MENUFILE}.${local_TS}" > "${BUILDDIR}/${MBR_MENUFILE}"
-  echo "Updated: ${BUILDDIR}/${MBR_MENUFILE}"
   sleep 1
 
   # 2: Remove the quiet boot flag
@@ -169,9 +180,7 @@ if [ ${DO_MBR} -ge 1 ] ; then
   # 3: Adjust boot delay to 1,000 seconds (~16 minutes)
   sed -i.$(date +%s) 's/timeout 600/timeout 10000/' ${BUILDDIR}/${MBR_MENUFILE}
 
-  # 4: Fix title of boot option
-  sed -i.$(date +%s) 's/menu.label..Install.Red.Hat/menu label ^Install Custom Red Hat/' ${BUILDDIR}/${MBR_MENUFILE}
-
+  echo "Updated: ${BUILDDIR}/${MBR_MENUFILE}"
 fi
 
 if [ ! -z "${DEBUG}" ] ; then
