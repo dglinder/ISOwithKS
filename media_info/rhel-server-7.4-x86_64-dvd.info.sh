@@ -20,7 +20,7 @@ MBR_MENU="label bootlocal
   menu default
 
 label custom
-  menu label ^Install Custom Red Hat Enterprise Linux 7.4
+  menu label Install ^Custom Red Hat Enterprise Linux 7.4
   kernel vmlinuz
   append initrd=initrd.img inst.stage2=hd:LABEL=${CDLABEL_FIXED} inst.ks=cdrom:/ks.cfg biosdevname=0 net.ifnames=0
 
