@@ -183,12 +183,13 @@ if [ ${DO_MBR} -ge 1 ] ; then
   echo "Updated: ${BUILDDIR}/${MBR_MENUFILE}"
 fi
 
-if [ ! -z "${DEBUG}" ] ; then
+if [ "${DEBUG}" -gt 0 ] ; then
   read -p "Press return to continue building ISO." foo
 fi
 
 rm -f ${BUILDDIR}/image/iso_build_date.txt
 echo "ISO build date: $(date +'%Y-%m-%d.%H:%M:%S')" >> ${BUILDDIR}/image/iso_build_date.txt
+echo "Git describe version information: $(git describe --abbrev=7 --dirty --always --tags)" >> ${BUILDDIR}/image/iso_build_date.txt
 
 #################################
 # Now build the ISO image
@@ -203,7 +204,9 @@ rm -f ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum ${BUILDDIR}/custom-${ISONAME}.
 ln -s ${BUILDDIR}/custom-${ISONAME}.${TS}.iso ${BUILDDIR}/custom-${ISONAME}.iso
 ln -s ${BUILDDIR}/custom-${ISONAME}.${TS}.iso.sha256sum ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum
 echo "Execution of \"mkisofs\" complete, computing sha256sum."
-sha256sum  ${BUILDDIR}/custom-${ISONAME}.${TS}.iso > ${BUILDDIR}/custom-${ISONAME}.${TS}.iso.sha256sum
+pushd ${BUILDDIR}
+sha256sum  custom-${ISONAME}.${TS}.iso > custom-${ISONAME}.${TS}.iso.sha256sum
+popd
 echo ""
 echo "Built ISO available here:"
 echo "${BUILDDIR}/custom-${ISONAME}.${TS}.iso"
