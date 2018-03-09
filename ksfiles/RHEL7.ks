@@ -37,7 +37,7 @@ lang en_US.UTF-8
 # Network information
 %include /tmp/ks-network.ks
 
-rootpw changeme
+rootpw Today123!
 
 # System services
 services --enabled="chronyd"
