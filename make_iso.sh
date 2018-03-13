@@ -11,6 +11,10 @@ set -e
 # Halt on any undefined variable.
 set -u
 
+# UEFI notes:
+#  When to use gpt vs bios:
+#    https://www.redhat.com/archives/kickstart-list/2012-August/msg00005.html
+#
 # TODO/FIX:
 #  done: Add disk info to confirmation screen #1
 #  done: Check the provided netmask is valid #2
