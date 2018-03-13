@@ -60,6 +60,7 @@ logvol /opt     --fstype="ext4"  --size=2048  --name=optlv  --vgname=rootvg
 @core
 kexec-tools
 libedit
+gfdisk
 # Only put in packages that are installable on all systems (physical, virtual)
 # so this kickstart file can be leveraged in all environments for consistency.
 # Include basic ssh tools for communication and remote Ansible work.
@@ -95,7 +96,7 @@ network_dnsdomain="bogus"
 network_ipaddr="bogus"
 network_netmask="bogus"
 network_gateway="bogus"
-setup_bonding="yes"
+setup_bonding="y"
 nic_list="eth0"
 good_config="n"
 
@@ -266,7 +267,7 @@ END_DISK
   echo "Full hostname with domain: ${network_hostname}.${network_dnsdomain}"
   echo ""
   echo "Installation drive: ${destdrive}"
-  echo "Drive details:"
+  echo "Drive details (fdisk):"
   fdisk -l /dev/${destdrive} | egrep -v '^$' | sed 's/^/    /g'
   echo ""
   echo "IP address: ${network_ipaddr}/${network_netmask}"
