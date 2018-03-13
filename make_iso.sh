@@ -11,21 +11,23 @@ set -e
 # Halt on any undefined variable.
 set -u
 
-# TODO:
-#  checked: Add disk info to confirmation screen #1
-#  checked: Check the provided netmask is valid #2
-#  checked: Remove the "quiet" option during custom install boot #3
-#  checked: Boot timeout #4
-#  checked: Add serial number to ISO name and a text file in /root #5
-#  checked: Fix the isolinux.cfg, adding in a new "label linux" --> "label custom", change default.
-#  checked: Fix duplicate install menu options in isolinux.cfg
-#  checked: Ensure rsync is mirroring to delete extra/modified files.
-#  checked: Bootlocal after timeout
+# TODO/FIX:
+#  done: Add disk info to confirmation screen #1
+#  done: Check the provided netmask is valid #2
+#  done: Remove the "quiet" option during custom install boot #3
+#  done: Boot timeout #4
+#  done: Add serial number to ISO name and a text file in /root #5
+#  n/a: Fix the isolinux.cfg, adding in a new "label linux" --> "label custom", change default.
+#  n/a: Fix duplicate install menu options in isolinux.cfg
+#  n/a: Ensure rsync is mirroring to delete extra/modified files.
+#  UEFIfix: Bootlocal after timeout
+#  UEFIfix: Keep legacy install option (remove check&install)
+#  UEFIfix: "failed to find a suitable stage1 device" - part /boot/efi --fstype vfat --size=200 --ondisk=sda
 
 #################################
 # Global variables to tweak.
 #
-# Location to build IOS in
+# Location to build IOS in - needs about 8GB per ISO type (4GB for files, 4GB for ISO).
 BUILDROOT=/opt/rh/tmp
 # Source of the RHEL ISOs - this can be a directory with symlinks.
 GOLDENISO=./isos/
@@ -189,7 +191,7 @@ fi
 
 rm -f ${BUILDDIR}/image/iso_build_date.txt
 echo "ISO build date: $(date +'%Y-%m-%d.%H:%M:%S')" >> ${BUILDDIR}/image/iso_build_date.txt
-echo "Git describe version information: $(git describe --abbrev=7 --dirty --always --tags)" >> ${BUILDDIR}/image/iso_build_date.txt
+echo "Git repo hash: $(git describe --abbrev=7 --dirty --always --tags)" >> ${BUILDDIR}/image/iso_build_date.txt
 
 #################################
 # Now build the ISO image
