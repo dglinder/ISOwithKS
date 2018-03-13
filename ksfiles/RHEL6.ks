@@ -237,7 +237,7 @@ END_NET
 clearpart --drives=${destdrive} --all
 
 # Initialize any invalid partition tables
-#zerombr
+zerombr
 
 # Run the Setup Agent on first boot
 firstboot --disabled
@@ -246,7 +246,7 @@ firstboot --disabled
 ignoredisk --only-use=${destdrive}
 
 # System bootloader configuration
-bootloader --append=' crashkernel=auto' --location=mbr
+bootloader --append=' crashkernel=auto' --location=partition
 
 # Setup initial boot and physical volume.
 part /boot      --fstype='ext3'  --ondisk=${destdrive} --size=1024
