@@ -27,8 +27,13 @@ set -u
 #################################
 # Global variables to tweak.
 #
+<<<<<<< HEAD
 # Location to build IOS in - needs about 8GB per ISO type (4GB for files, 4GB for ISO).
 BUILDROOT=/opt/rh/tmp
+=======
+# Location to build IOS in
+BUILDROOT=./tmp/
+>>>>>>> fdbd3283ec0047920f9420ccf6f19c608f71d3af
 # Source of the RHEL ISOs - this can be a directory with symlinks.
 GOLDENISO=./isos/
 
@@ -200,7 +205,7 @@ mkisofs -U  -A "${CDLABEL}" -V "${CDLABEL}" -volset "${CDLABEL}" -J  -joliet-lon
     -o ${BUILDDIR}/custom-${ISONAME}.${TS}.iso -b isolinux/isolinux.bin -c isolinux/boot.cat \
     -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot \
     -e images/efiboot.img -no-emul-boot \
-    ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish|^Using\ .*for\ '
+    ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish|^Using\ .*for\ |^Done with:|^Writing:|^Scanning |^Excluded: ..*TRANS.TBL$'
 
 rm -f ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum ${BUILDDIR}/custom-${ISONAME}.iso
 ln -s ${BUILDDIR}/custom-${ISONAME}.${TS}.iso ${BUILDDIR}/custom-${ISONAME}.iso
