@@ -237,7 +237,17 @@ END_NET
   read -p "Enter the drive name to install to: " -ei "sda" destdrive
 
   # Set the DISK/PARITITON information for the installer:
-  cat <<END_DISK >/tmp/ks-destdrive.ks
+  rm -f /tmp/ks-destdrive.ks
+
+# https://access.redhat.com/discussions/762253
+#  if [ ${UEFI}" ] ; then
+#    parted -s /dev/${destdrive} mklabel gpt
+    cat <<END_UEFIDISK >>/tmp/ks-destdrive.ks
+part /boot/efi  --fstype='efi'   --ondisk=${destdrive} --size=200
+END_UEFIDISK
+#  fi
+
+  cat <<END_DISK >>/tmp/ks-destdrive.ks
 # Partition clearing information
 clearpart --drives=${destdrive} --all
 
@@ -302,6 +312,7 @@ END_DISK
 done
 #
 ################################################################
+parted -s /dev/${destdrive} mklabel gpt
 %end
 #
 # End %pre section
