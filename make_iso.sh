@@ -26,7 +26,7 @@ set -u
 # Global variables to tweak.
 #
 # Location to build IOS in
-BUILDROOT=/opt/rh/tmp
+BUILDROOT=./tmp/
 # Source of the RHEL ISOs - this can be a directory with symlinks.
 GOLDENISO=./isos/
 
