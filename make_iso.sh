@@ -27,13 +27,8 @@ set -u
 #################################
 # Global variables to tweak.
 #
-<<<<<<< HEAD
 # Location to build IOS in - needs about 8GB per ISO type (4GB for files, 4GB for ISO).
-BUILDROOT=/opt/rh/tmp
-=======
-# Location to build IOS in
 BUILDROOT=./tmp/
->>>>>>> fdbd3283ec0047920f9420ccf6f19c608f71d3af
 # Source of the RHEL ISOs - this can be a directory with symlinks.
 GOLDENISO=./isos/
 
