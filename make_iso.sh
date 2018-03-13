@@ -28,9 +28,9 @@ set -u
 # Global variables to tweak.
 #
 # Location to build IOS in - needs about 8GB per ISO type (4GB for files, 4GB for ISO).
-BUILDROOT=./tmp/
+BUILDROOT=./tmp
 # Source of the RHEL ISOs - this can be a directory with symlinks.
-GOLDENISO=./isos/
+GOLDENISO=./isos
 
 # Timestamp for the image:
 TS=$(date +%Y%m%d_%H%M%S)
@@ -58,11 +58,14 @@ fi
 #
 function clean_exit {
   echo "Exiting using exit function."
+  set +u
   if [ ! -z "${BUILDDIR}" ] ; then
+    echo "Cleaning up ${BUILDDIR}"
     umount ${BUILDDIR}/isomount/
-#    rmdir ${BUILDDIR}/isomount/
-#    rmdir ${BUILDDIR}/
+    rmdir ${BUILDDIR}/isomount/
+    rm -rf ${BUILDDIR}/
   fi
+  set -u
 }
 trap clean_exit EXIT
 
@@ -197,21 +200,23 @@ echo "Git repo hash: $(git describe --abbrev=7 --dirty --always --tags)" >> ${BU
 # Now build the ISO image
 echo "Executing the \"mkisofs\" command."
 mkisofs -U  -A "${CDLABEL}" -V "${CDLABEL}" -volset "${CDLABEL}" -J  -joliet-long -r -v -T \
-    -o ${BUILDDIR}/custom-${ISONAME}.${TS}.iso -b isolinux/isolinux.bin -c isolinux/boot.cat \
+    -o ${BUILDDIR}/../custom-${ISONAME}.${TS}.iso -b isolinux/isolinux.bin -c isolinux/boot.cat \
     -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot \
     -e images/efiboot.img -no-emul-boot \
     ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish|^Using\ .*for\ |^Done with:|^Writing:|^Scanning |^Excluded: ..*TRANS.TBL$'
 
-rm -f ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum ${BUILDDIR}/custom-${ISONAME}.iso
-ln -s ${BUILDDIR}/custom-${ISONAME}.${TS}.iso ${BUILDDIR}/custom-${ISONAME}.iso
-ln -s ${BUILDDIR}/custom-${ISONAME}.${TS}.iso.sha256sum ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum
+pushd ${BUILDROOT}/
+rm -f custom-${ISONAME}.iso.sha256sum custom-${ISONAME}.iso
+ln -s custom-${ISONAME}.${TS}.iso custom-${ISONAME}.iso
+ln -s custom-${ISONAME}.${TS}.iso.sha256sum custom-${ISONAME}.iso.sha256sum
 echo "Execution of \"mkisofs\" complete, computing sha256sum."
-pushd ${BUILDDIR}
 sha256sum  custom-${ISONAME}.${TS}.iso > custom-${ISONAME}.${TS}.iso.sha256sum
 popd
 echo ""
 echo "Built ISO available here:"
-echo "${BUILDDIR}/custom-${ISONAME}.${TS}.iso"
-ls -al ${BUILDDIR}/custom-${ISONAME}.${TS}.iso*
+echo "${BUILDROOT}/custom-${ISONAME}.${TS}.iso"
+echo "${BUILDROOT}/custom-${ISONAME}.iso"
+ls -al ${BUILDROOT}/custom-${ISONAME}.${TS}.iso*
+ls -al ${BUILDROOT}/custom-${ISONAME}.iso
 
 
