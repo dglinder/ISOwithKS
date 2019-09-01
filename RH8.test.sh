@@ -135,7 +135,7 @@ echo "#"
 implantisomd5 ${NEWISO}
 
 popd
-echo "Done!"
-ls -altr ${NEWISO}
+echo "Done at $(date):"
+ls -altrh ${NEWISO}
 
 
