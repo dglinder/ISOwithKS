@@ -27,6 +27,7 @@ timezone Etc/GMT --utc --ntpservers=t1.ntp.company.com,t2.ntp.company.com,t3.ntp
 
 # Disk partitioning information
 volgroup rootvg --pesize=4096 pv.155
+# Can't use the --useexisting or --noformat flags when we specify logvol members
 logvol swap     --fstype="swap"  --size=2048  --name=swap   --vgname=rootvg
 logvol /        --fstype="ext4"  --size=1024  --name=rootlv --vgname=rootvg
 logvol /usr     --fstype="ext4"  --size=10240 --name=usrlv  --vgname=rootvg
