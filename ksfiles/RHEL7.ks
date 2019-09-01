@@ -43,7 +43,7 @@ rootpw Today123!
 services --enabled="chronyd"
 
 # System timezone
-timezone Etc/GMT --utc --ntpservers=t1.ntp.west.com,t2.ntp.west.com,t3.ntp.west.com,t4.ntp.west.com,t5.ntp.west.com,t6.ntp.west.com
+timezone Etc/GMT --utc --ntpservers=t1.ntp.company.com,t2.ntp.company.com,t3.ntp.company.com,t4.ntp.company.com,t5.ntp.company.com,t6.ntp.company.com
 
 # Disk partitioning information
 volgroup rootvg --pesize=4096 pv.155
@@ -91,7 +91,7 @@ exec < $iotty > $iotty 2> $iotty
 
 # Defaults that may vary depending on build
 def_hn=""
-def_dom="west.com"
+def_dom="company.com"
 def_ip=""
 def_mask="255.255."
 def_gw=""
