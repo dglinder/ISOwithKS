@@ -311,8 +311,9 @@ cp /tmp/ks-* /mnt/sysimage/root/
 %end
 #
 %post --interpreter=/bin/bash --log=/root/ks-post02.log
-hostname | tee -a /root/Kickstart-notes
-date +"%Y-%m-%d_%H:%M:%S - Kickstart-installed Red Hat Linux `/bin/date`" | tee -a /root/Kickstart-notes
+date +"%Y-%m-%d_%H:%M:%S - Kickstart-installed Red Hat Linux" | tee -a /root/Kickstart-notes
+date +"%Y-%m-%d_%H:%M:%S - Building $(hostname -f) (FQDN)" | tee -a /root/Kickstart-notes
+date +"%Y-%m-%d_%H:%M:%S - Building $(hostname -s) (short hostname)" | tee -a /root/Kickstart-notes
 date +"%Y-%m-%d_%H:%M:%S - Mounted filesystems in %post section" | tee -a /root/Kickstart-notes
 df -Ph | tee -a /root/Kickstart-notes
 if grep -i PACKER /proc/cmdline ; then
