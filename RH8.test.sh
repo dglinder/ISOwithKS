@@ -105,22 +105,30 @@ pushd ${BUILDDIR}/
 echo "################################################"
 echo "# Building ${NEWISO}"
 echo "#"
-sudo rm ${NEWISO}
+rm -f ${NEWISO}
 sudo mkisofs -o ${NEWISO} -b isolinux/isolinux.bin \
 	-J -R -l -c isolinux/boot.cat -no-emul-boot \
 	-boot-load-size 4 -boot-info-table -eltorito-alt-boot \
 	-e images/efiboot.img -no-emul-boot -graft-points \
 	-V "RHEL-8.0 Server.x86_64" . 2>&1 |  egrep -v 'estimate finish|^Using\ .*for\ |^Done with:|^Writing:|^Scanning |^Excluded: ..*TRANS.TBL$'
 
+#mkisofs -U  -A "${CDLABEL}" -V "${CDLABEL}" -volset "${CDLABEL}" -J  -joliet-long -r -v -T \
+#    -o ${BUILDDIR}/../custom-${ISONAME}.${TS}.iso -b isolinux/isolinux.bin -c isolinux/boot.cat \
+#    -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot \
+#    -e images/efiboot.img -no-emul-boot \
+#    ${BUILDDIR}/image/
+
+sudo chown ${USER}:$(id -gn) ${NEWISO}
+
 echo "################################################"
 echo "# Running isohybrid on ISO"
 echo "#"
-sudo isohybrid --uefi ${NEWISO}
+isohybrid --uefi ${NEWISO}
 
 echo "################################################"
 echo "# Running implantisomd5 on ISO"
 echo "#"
-sudo implantisomd5 ${NEWISO}
+implantisomd5 ${NEWISO}
 
 popd
 echo "Done!"
