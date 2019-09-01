@@ -86,7 +86,7 @@ exec < $iotty > $iotty 2> $iotty
 
 # Defaults that may vary depending on build
 def_hn=""
-def_dom="west.com"
+def_dom="company.com"
 def_ip=""
 def_mask="255.255."
 def_gw=""
