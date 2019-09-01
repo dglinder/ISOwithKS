@@ -5,12 +5,27 @@ set -u
 
 ISO='/home/dan/tmp/ISOs/rhel-8.0-x86_64-dvd.iso'
 NEWISO='/var/tmp/rhel8new.iso'
+TS="$(date)"
 
 # Get the LABEL variable
 export $(blkid -o export "${ISO}")
 
-BUILDDIR="$(mktemp -d /var/tmp/temp_expand.XXX)"
-TMPMOUNT="$(mktemp -d /var/tmp/temp_mount.XXX)"
+function finish {
+	# Cleanup before exit
+	sudo umount ${TMPMOUNT}
+	#rm -rf ${BUILDDIR} ${TMPMOUNT}
+}
+trap finish EXIT
+
+#BUILDDIR="$(mktemp -d /var/tmp/temp_expand.XXX)"
+#TMPMOUNT="$(mktemp -d /var/tmp/temp_mount.XXX)"
+BUILDDIR="/var/tmp/temp_expand"
+TMPMOUNT="/var/tmp/temp_mount"
+mkdir -p ${BUILDDIR}
+mkdir -p ${TMPMOUNT}
+
+echo "Mounting ISO onto ${TMPMOUNT}"
+echo "Expanding ISO into ${BUILDDIR}"
 
 MYKS="./ksfiles/RHEL8.ks"
 
@@ -18,7 +33,7 @@ UEFI_MENUFILE="isolinux/isolinux.cfg"
 UEFI_START="^label\ linux"
 UEFI_END="label linux"
 UEFI_MENU="label kickstart
-  menu label ^Dans Custom Kickstart Installation of RHEL8.0
+  menu label ^Dans ${TS} Custom UEFI RHEL8.0
   kernel vmlinuz
   append initrd=initrd.img inst.stage2=hd:LABEL=${LABEL} inst.ks=cdrom:/ks.cfg
 
@@ -28,7 +43,7 @@ GRUB_MENUFILE="EFI/BOOT/grub.cfg"
 GRUB_START="### BEGIN .etc.grub.d.10_linux ###"
 GRUB_END="menuentry 'Install Red Hat Enterprise Linux 8.0.0' --class fedora --class gnu-linux --class gnu --class os {"
 GRUB_CFG="### BEGIN /etc/grub.d/10_linux ###
-menuentry 'Install CUSTOM Red Hat Enterprise Linux 8.0' --class fedora --class gnu-linux --class gnu --class os {
+menuentry 'Dans ${TS} Custom MBR RHEL 8.0' --class fedora --class gnu-linux --class gnu --class os {
 	linuxefi /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=${LABEL} inst.ks=cdrom:/ks.cfg
 	initrdefi /images/pxeboot/initrd.img
 }
@@ -38,7 +53,7 @@ sudo mount -o loop,ro ${ISO} ${TMPMOUNT}
 
 mkdir -p "${BUILDDIR}"
 shopt -s dotglob
-cp -aRf ${TMPMOUNT}/* ${BUILDDIR}
+rsync -a  ${TMPMOUNT}/* ${BUILDDIR}
 
 cp ${MYKS} ${BUILDDIR}/ks.cfg
 
@@ -89,11 +104,12 @@ chmod ${INIT_PERM_D} "${BUILDDIR}/$(dirname ${GRUB_MENUFILE})"
 pushd ${BUILDDIR}/
 ls -altr .
 echo Running mkisofs
+sudo rm ${NEWISO}
 sudo mkisofs -o ${NEWISO} -b isolinux/isolinux.bin \
 	-J -R -l -c isolinux/boot.cat -no-emul-boot \
 	-boot-load-size 4 -boot-info-table -eltorito-alt-boot \
 	-e images/efiboot.img -no-emul-boot -graft-points \
-	-V "RHEL-8.0 Server.x86_64" . 2>&1 | egrep -iv ^Using
+	-V "RHEL-8.0 Server.x86_64" . 2>&1 |  egrep -v 'estimate finish|^Using\ .*for\ |^Done with:|^Writing:|^Scanning |^Excluded: ..*TRANS.TBL$'
 
 echo "Running isohybrid and implantisomd5 on ISO"
 sudo isohybrid --uefi ${NEWISO}
