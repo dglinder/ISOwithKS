@@ -62,6 +62,7 @@ eula --accept
 @core
 kexec-tools
 libedit
+gfdisk
 # Only put in packages that are installable on all systems (physical, virtual)
 # so this kickstart file can be leveraged in all environments for consistency.
 # Include basic ssh tools for communication and remote Ansible work.
@@ -100,7 +101,7 @@ network_dnsdomain="bogus"
 network_ipaddr="bogus"
 network_netmask="bogus"
 network_gateway="bogus"
-setup_bonding="yes"
+setup_bonding="y"
 nic_list="eth0"
 good_config="n"
 
@@ -237,12 +238,22 @@ END_NET
   read -p "Enter the drive name to install to: " -ei "sda" destdrive
 
   # Set the DISK/PARITITON information for the installer:
-  cat <<END_DISK >/tmp/ks-destdrive.ks
+  rm -f /tmp/ks-destdrive.ks
+
+# https://access.redhat.com/discussions/762253
+#  if [ ${UEFI}" ] ; then
+#    parted -s /dev/${destdrive} mklabel gpt
+#    cat <<END_UEFIDISK >>/tmp/ks-destdrive.ks
+#part /boot/efi  --fstype='efi'   --ondisk=${destdrive} --size=200
+#END_UEFIDISK
+#  fi
+
+  cat <<END_DISK >>/tmp/ks-destdrive.ks
 # Partition clearing information
 clearpart --drives=${destdrive} --all
 
 # Initialize any invalid partition tables
-#zerombr
+zerombr
 
 # Run the Setup Agent on first boot
 firstboot --disabled
@@ -254,7 +265,9 @@ ignoredisk --only-use=${destdrive}
 bootloader --append=' crashkernel=auto' --location=mbr --boot-drive=${destdrive} vga=769
 
 # Setup initial boot and physical volume.
-part /boot      --fstype='ext3'  --ondisk=${destdrive} --size=1024
+part biosboot   --fstype='biosboot' --size=1
+part /boot      --fstype='ext4'  --ondisk=${destdrive} --size=1024
+part /boot/efi  --fstype='efi'   --ondisk=${destdrive} --size=200
 part pv.155     --fstype='lvmpv' --ondisk=${destdrive} --size=38912 --grow
 END_DISK
   #
@@ -271,8 +284,8 @@ END_DISK
   echo "Full hostname with domain: ${network_hostname}.${network_dnsdomain}"
   echo ""
   echo "Installation drive: ${destdrive}"
-  echo "Drive details:"
-  fdisk -l /dev/${destdrive} | egrep -v '^$' | sed 's/^/    /g'
+  echo "Drive details (gdisk):"
+  gdisk -l /dev/${destdrive} | egrep -v '^$|sr0|read-only' | sed 's/^/    /g'
   echo ""
   echo "IP address: ${network_ipaddr}/${network_netmask}"
   echo "Default gateway: ${network_gateway}"
@@ -302,6 +315,7 @@ END_DISK
 done
 #
 ################################################################
+parted -s /dev/${destdrive} mklabel gpt
 %end
 #
 # End %pre section

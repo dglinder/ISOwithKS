@@ -11,24 +11,30 @@ set -e
 # Halt on any undefined variable.
 set -u
 
-# TODO:
-#  checked: Add disk info to confirmation screen #1
-#  checked: Check the provided netmask is valid #2
-#  checked: Remove the "quiet" option during custom install boot #3
-#  checked: Boot timeout #4
-#  checked: Add serial number to ISO name and a text file in /root #5
-#  checked: Fix the isolinux.cfg, adding in a new "label linux" --> "label custom", change default.
-#  checked: Fix duplicate install menu options in isolinux.cfg
-#  checked: Ensure rsync is mirroring to delete extra/modified files.
-#  checked: Bootlocal after timeout
+# UEFI notes:
+#  When to use gpt vs bios:
+#    https://www.redhat.com/archives/kickstart-list/2012-August/msg00005.html
+#
+# TODO/FIX:
+#  done: Add disk info to confirmation screen #1
+#  done: Check the provided netmask is valid #2
+#  done: Remove the "quiet" option during custom install boot #3
+#  done: Boot timeout #4
+#  done: Add serial number to ISO name and a text file in /root #5
+#  n/a: Fix the isolinux.cfg, adding in a new "label linux" --> "label custom", change default.
+#  n/a: Fix duplicate install menu options in isolinux.cfg
+#  n/a: Ensure rsync is mirroring to delete extra/modified files.
+#  UEFIfix: Bootlocal after timeout
+#  UEFIfix: Keep legacy install option (remove check&install)
+#  UEFIfix: "failed to find a suitable stage1 device" - part /boot/efi --fstype vfat --size=200 --ondisk=sda
 
 #################################
 # Global variables to tweak.
 #
-# Location to build IOS in
-BUILDROOT=./tmp/
+# Location to build IOS in - needs about 8GB per ISO type (4GB for files, 4GB for ISO).
+BUILDROOT=./tmp
 # Source of the RHEL ISOs - this can be a directory with symlinks.
-GOLDENISO=./isos/
+GOLDENISO=./isos
 
 # Timestamp for the image:
 TS=$(date +%Y%m%d_%H%M%S)
@@ -56,11 +62,14 @@ fi
 #
 function clean_exit {
   echo "Exiting using exit function."
+  set +u
   if [ ! -z "${BUILDDIR}" ] ; then
+    echo "Cleaning up ${BUILDDIR}"
     umount ${BUILDDIR}/isomount/
-#    rmdir ${BUILDDIR}/isomount/
-#    rmdir ${BUILDDIR}/
+    rmdir ${BUILDDIR}/isomount/
+    rm -rf ${BUILDDIR}/
   fi
+  set -u
 }
 trap clean_exit EXIT
 
@@ -189,27 +198,29 @@ fi
 
 rm -f ${BUILDDIR}/image/iso_build_date.txt
 echo "ISO build date: $(date +'%Y-%m-%d.%H:%M:%S')" >> ${BUILDDIR}/image/iso_build_date.txt
-echo "Git describe version information: $(git describe --abbrev=7 --dirty --always --tags)" >> ${BUILDDIR}/image/iso_build_date.txt
+echo "Git repo hash: $(git describe --abbrev=7 --dirty --always --tags)" >> ${BUILDDIR}/image/iso_build_date.txt
 
 #################################
 # Now build the ISO image
 echo "Executing the \"mkisofs\" command."
 mkisofs -U  -A "${CDLABEL}" -V "${CDLABEL}" -volset "${CDLABEL}" -J  -joliet-long -r -v -T \
-    -o ${BUILDDIR}/custom-${ISONAME}.${TS}.iso -b isolinux/isolinux.bin -c isolinux/boot.cat \
+    -o ${BUILDDIR}/../custom-${ISONAME}.${TS}.iso -b isolinux/isolinux.bin -c isolinux/boot.cat \
     -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot \
     -e images/efiboot.img -no-emul-boot \
     ${BUILDDIR}/image/ 2>&1 | egrep -v 'estimate finish|^Using\ .*for\ |^Done with:|^Writing:|^Scanning |^Excluded: ..*TRANS.TBL$'
 
-rm -f ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum ${BUILDDIR}/custom-${ISONAME}.iso
-ln -s ${BUILDDIR}/custom-${ISONAME}.${TS}.iso ${BUILDDIR}/custom-${ISONAME}.iso
-ln -s ${BUILDDIR}/custom-${ISONAME}.${TS}.iso.sha256sum ${BUILDDIR}/custom-${ISONAME}.iso.sha256sum
+pushd ${BUILDROOT}/
+rm -f custom-${ISONAME}.iso.sha256sum custom-${ISONAME}.iso
+ln -s custom-${ISONAME}.${TS}.iso custom-${ISONAME}.iso
+ln -s custom-${ISONAME}.${TS}.iso.sha256sum custom-${ISONAME}.iso.sha256sum
 echo "Execution of \"mkisofs\" complete, computing sha256sum."
-pushd ${BUILDDIR}
 sha256sum  custom-${ISONAME}.${TS}.iso > custom-${ISONAME}.${TS}.iso.sha256sum
 popd
 echo ""
 echo "Built ISO available here:"
-echo "${BUILDDIR}/custom-${ISONAME}.${TS}.iso"
-ls -al ${BUILDDIR}/custom-${ISONAME}.${TS}.iso*
+echo "${BUILDROOT}/custom-${ISONAME}.${TS}.iso"
+echo "${BUILDROOT}/custom-${ISONAME}.iso"
+ls -al ${BUILDROOT}/custom-${ISONAME}.${TS}.iso*
+ls -al ${BUILDROOT}/custom-${ISONAME}.iso
 
 
