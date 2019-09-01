@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+clear
 # Notes: https://access.redhat.com/solutions/60959
 set -e
 set -u
@@ -53,7 +54,7 @@ sudo mount -o loop,ro ${ISO} ${TMPMOUNT}
 
 mkdir -p "${BUILDDIR}"
 shopt -s dotglob
-rsync -a  ${TMPMOUNT}/* ${BUILDDIR}
+rsync -a --progress --delete ${TMPMOUNT}/* ${BUILDDIR}
 
 cp ${MYKS} ${BUILDDIR}/ks.cfg
 
@@ -70,7 +71,7 @@ cp -p "${BUILDDIR}/${UEFI_MENUFILE}" "${BUILDDIR}/${UEFI_MENUFILE}.orig"
 
 awk -v sb="${UEFI_MENU}" "/${UEFI_START}/,/${UEFI_END}/ { if ( \$0 ~ /${UEFI_START}/) print sb; next } 1" "${BUILDDIR}/${UEFI_MENUFILE}" > "${BUILDDIR}/${UEFI_MENUFILE}.new"
 echo "Added these lines to the ${BUILDDIR}/${UEFI_MENUFILE} file:"
-/usr/bin/diff "${BUILDDIR}/${UEFI_MENUFILE}.orig" "${BUILDDIR}/${UEFI_MENUFILE}.new" | cat -n
+/usr/bin/diff -C8 "${BUILDDIR}/${UEFI_MENUFILE}.orig" "${BUILDDIR}/${UEFI_MENUFILE}.new" | cat -n
 echo "Diff done"
 
 cat "${BUILDDIR}/${UEFI_MENUFILE}.new" > "${BUILDDIR}/${UEFI_MENUFILE}"
@@ -78,7 +79,6 @@ cat "${BUILDDIR}/${UEFI_MENUFILE}.new" > "${BUILDDIR}/${UEFI_MENUFILE}"
 chmod ${INIT_PERM_F} "${BUILDDIR}/${UEFI_MENUFILE}"
 chmod ${INIT_PERM_D} "${BUILDDIR}/$(dirname ${UEFI_MENUFILE})"
 
-echo "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 echo "################################################"
 echo "# Fix up the grub.cfg"
 echo "#"
@@ -92,7 +92,7 @@ cp -p "${BUILDDIR}/${GRUB_MENUFILE}" "${BUILDDIR}/${GRUB_MENUFILE}.orig"
 
 awk -v sb="${GRUB_CFG}" "/${GRUB_START}/,/${GRUB_END}/ { if ( \$0 ~ /${GRUB_START}/) print sb; next } 1" "${BUILDDIR}/${GRUB_MENUFILE}" > "${BUILDDIR}/${GRUB_MENUFILE}.new"
 echo "Added these lines to the ${BUILDDIR}/${GRUB_MENUFILE} file:"
-/usr/bin/diff "${BUILDDIR}/${GRUB_MENUFILE}.orig" "${BUILDDIR}/${GRUB_MENUFILE}.new" | cat -n
+/usr/bin/diff -C8 "${BUILDDIR}/${GRUB_MENUFILE}.orig" "${BUILDDIR}/${GRUB_MENUFILE}.new" | cat -n
 echo "Diff done"
 
 cp "${BUILDDIR}/${GRUB_MENUFILE}.new" "${BUILDDIR}/${GRUB_MENUFILE}"
@@ -102,8 +102,9 @@ chmod ${INIT_PERM_F} "${BUILDDIR}/${GRUB_MENUFILE}"
 chmod ${INIT_PERM_D} "${BUILDDIR}/$(dirname ${GRUB_MENUFILE})"
 
 pushd ${BUILDDIR}/
-ls -altr .
-echo Running mkisofs
+echo "################################################"
+echo "# Building ${NEWISO}"
+echo "#"
 sudo rm ${NEWISO}
 sudo mkisofs -o ${NEWISO} -b isolinux/isolinux.bin \
 	-J -R -l -c isolinux/boot.cat -no-emul-boot \
@@ -111,11 +112,18 @@ sudo mkisofs -o ${NEWISO} -b isolinux/isolinux.bin \
 	-e images/efiboot.img -no-emul-boot -graft-points \
 	-V "RHEL-8.0 Server.x86_64" . 2>&1 |  egrep -v 'estimate finish|^Using\ .*for\ |^Done with:|^Writing:|^Scanning |^Excluded: ..*TRANS.TBL$'
 
-echo "Running isohybrid and implantisomd5 on ISO"
+echo "################################################"
+echo "# Running isohybrid on ISO"
+echo "#"
 sudo isohybrid --uefi ${NEWISO}
+
+echo "################################################"
+echo "# Running implantisomd5 on ISO"
+echo "#"
 sudo implantisomd5 ${NEWISO}
 
 popd
 echo "Done!"
+ls -altr ${NEWISO}
 
 
