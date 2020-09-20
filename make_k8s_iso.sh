@@ -121,6 +121,7 @@ mkdir -p ${BUILDDIR}/isomount/
 mkdir -p ${BUILDDIR}/image/
 
 # Mount the ISO
+umount ${BUILDDIR}/isomount/
 mount -o loop ${GOLDENISO}/${ISONAME}.iso ${BUILDDIR}/isomount/
 
 # Cleanup from past tests
@@ -167,6 +168,9 @@ if [ ${DO_UEFI} -ge 1 ] ; then
   sed -i.$(date +%s) 's/set timeout=60/set timeout=1000/' ${BUILDDIR}/${UEFI_MENUFILE}
 
   echo "Updated: ${BUILDDIR}/${UEFI_MENUFILE}"
+  set +e # Diff reports a non-zero exit when there are diffs.
+  diff -C2 ${BUILDDIR}/${UEFI_MENUFILE} ${BUILDDIR}/${UEFI_MENUFILE}.${local_TS}
+  set -e
 fi
 
 if [ ${DO_MBR} -ge 1 ] ; then
@@ -191,6 +195,9 @@ if [ ${DO_MBR} -ge 1 ] ; then
   sed -i.$(date +%s) 's/timeout 600/timeout 10000/' ${BUILDDIR}/${MBR_MENUFILE}
 
   echo "Updated: ${BUILDDIR}/${MBR_MENUFILE}"
+  set +e # Diff reports a non-zero exit when there are diffs.
+  diff -C2 ${BUILDDIR}/${MBR_MENUFILE} ${BUILDDIR}/${MBR_MENUFILE}.${local_TS}
+  set -e
 fi
 
 if [ "${DEBUG}" -gt 0 ] ; then
