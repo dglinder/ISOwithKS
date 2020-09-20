@@ -1,0 +1,41 @@
+# This file must be a valid shell script for BASH to source for the values
+# below.
+# The file name is based on the "blkid -o export" information of the
+# ISO file this information pertains to.  Run "blkid -o export disk.iso"
+# to get the LABEL name for this file.
+
+# Output from blkid:
+#  blkid -o export isos/fedora-coreos-32.20200824.3.0-live.x86_64.iso
+DEVNAME=isos/fedora-coreos-32.20200824.3.0-live.x86_64.iso
+UUID=2020-09-08-09-21-14-00
+LABEL=fedora-coreos-32.20200824.3.0
+TYPE=iso9660
+PTUUID=3bbb461a
+PTTYPE=dos
+
+SHA256SUM="b45e345f33e3ba22bfff5b21b30a371247864c832220a54b143c454078886e4c"
+KSNAME="./ksfiles/fedora-coreos-32.ks"
+
+UEFI_MENUFILE="isolinux/isolinux.cfg"
+UEFI_START="^label\ linux"
+UEFI_END="label linux"
+UEFI_MENU="label kickstart
+  menu label ^Custom UEFI CoreOS 32
+  kernel vmlinuz
+  append initrd=initrd.img inst.stage2=hd:LABEL=${LABEL} inst.ks=cdrom:/ks.cfg
+
+label linux"
+
+GRUB_MENUFILE="EFI/BOOT/grub.cfg"
+GRUB_START="### BEGIN .etc.grub.d.10_linux ###"
+GRUB_END="menuentry 'Install Red Hat Enterprise Linux 8.0.0' --class fedora --class gnu-linux --class gnu --class os {"
+GRUB_MENU="### BEGIN /etc/grub.d/10_linux ###
+menuentry 'Company Custom MBR CoreOS 32' --class fedora --class gnu-linux --class gnu --class os {
+	linuxefi /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=${LABEL} inst.ks=cdrom:/ks.cfg
+	initrdefi /images/pxeboot/initrd.img
+}
+# Append:
+# coreos.inst.install_dev=/dev/sda
+# coreos.inst.image_url=http://192.168.65.237:8080/okd4/fcos.raw.xz
+# coreos.inst.ignition_url=http://192.168.65.237:8080/okd4/bootstrap.ign
+${GRUB_END}"
