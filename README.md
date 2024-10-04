@@ -24,18 +24,18 @@ The iso listed should match with the sha256 checksum in the smaller file.
 At a high level the script performs the following steps:
 
 1. Prompts the user for the name of the ISO to build from.
-* Or the system will take the name of the ISO from the command line.
+   * Or the system will take the name of the ISO from the command line.
 1. The script verifies that the customization information in ```media_info``` exists for this ISO.
 1. The ISO file is mounted at ```${BUILDDIR}/isomount/``` and the contents are extracted to ```${BUILDDIR}/image/```
-* These are gloval variables that can be customized.
-* See the *Customization* section below.
+   * These are gloval variables that can be customized.
+   * See the *Customization* section below.
 1. The customization information is loaded from the ```./media_info/${ISONAME}.info.sh``` file
-* The file is a shell script format and sets variables used later in the ```make_iso.sh``` script.
-* Necessary variables are checked; the script exits if any are missing.
+   * The file is a shell script format and sets variables used later in the ```make_iso.sh``` script.
+   * Necessary variables are checked; the script exits if any are missing.
 1. The various legacy and UEFI boot configuration files are updated
-* Values from the ```media_info``` files are used to update the files.
+   * Values from the ```media_info``` files are used to update the files.
 1. An ISO is built and stored in the ```${BUILDDIR}``` directory.
-* The ISO begins with "custom-" and has the timestamp embedded in the name for tracking.
+   * The ISO begins with "custom-" and has the timestamp embedded in the name for tracking.
 
 ## Customization
 
